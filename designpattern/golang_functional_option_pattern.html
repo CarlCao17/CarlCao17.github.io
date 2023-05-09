@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Carl&#39;s Note Cabin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="翻译自 https:&#x2F;&#x2F;golang.cafe&#x2F;blog&#x2F;golang-functional-options-pattern.html  Go 的函数式Option 模式是一种构造结构体的模式，通过设计表达能力强且非常灵活的一组API来帮助完成对核心结构体的配置和初始化。至于为什么需要使用，以及什么时候使用可以通过下面的Case来展示。 Example: 用 Go 构建一个 server 包在下">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Carl&#39;s Note Cabin">
+<meta property="og:url" content="https://carlcao17.github.io/designpattern/golang_functional_option_pattern.html">
+<meta property="og:site_name" content="Carl&#39;s Note Cabin">
+<meta property="og:description" content="翻译自 https:&#x2F;&#x2F;golang.cafe&#x2F;blog&#x2F;golang-functional-options-pattern.html  Go 的函数式Option 模式是一种构造结构体的模式，通过设计表达能力强且非常灵活的一组API来帮助完成对核心结构体的配置和初始化。至于为什么需要使用，以及什么时候使用可以通过下面的Case来展示。 Example: 用 Go 构建一个 server 包在下">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-05-09T12:13:36.517Z">
+<meta property="article:modified_time" content="2023-05-09T12:13:36.517Z">
+<meta property="article:author" content="Carl Cao">
+<meta property="article:tag" content="Golang C OS">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="Carl's Note Cabin" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Carl&#39;s Note Cabin</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://CarlCao17.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="page-" class="h-entry article article-type-page" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/designpattern/golang_functional_option_pattern.html" class="article-date">
+  <time class="dt-published" datetime="2023-05-09T12:13:36.517Z" itemprop="datePublished">2023-05-09</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <blockquote>
+<p>翻译自 <a target="_blank" rel="noopener" href="https://golang.cafe/blog/golang-functional-options-pattern.html">https://golang.cafe/blog/golang-functional-options-pattern.html</a></p>
+</blockquote>
+<p>Go 的函数式Option 模式是一种构造结构体的模式，通过设计表达能力强且非常灵活的一组API来帮助完成对核心结构体的配置和初始化。<br>至于为什么需要使用，以及什么时候使用可以通过下面的Case来展示。</p>
+<h2 id="Example-用-Go-构建一个-server-包"><a href="#Example-用-Go-构建一个-server-包" class="headerlink" title="Example: 用 Go 构建一个 server 包"></a>Example: 用 Go 构建一个 server 包</h2><p>在下面这个例子中，我们用 Go 来构建一个 server 包，当然它也可以是被第三方用户使用的任何包，比如一个自定义SDK或者一个日志库。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> server</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Server &#123;</span><br><span class="line">	host <span class="type">string</span></span><br><span class="line">	port <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(host <span class="type">string</span>, port <span class="type">int</span>)</span></span> *Server &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;host, port&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> Start() <span class="type">error</span> &#123;</span><br><span class="line">	<span class="comment">// todo</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端导入并使用 server 包：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="string">&quot;path/to/server/pkg/server&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	svr := server.New(<span class="string">&quot;localhost&quot;</span>, <span class="number">1234</span>)</span><br><span class="line">	<span class="keyword">if</span> err := svr.Start(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>那么在当前场景下，我们如何为当前的 server 扩展配置选项呢？有这几种方式：</p>
+<ul>
+<li>为每一个不同的配置选项声明一个新的构造器</li>
+<li>声明一个新的 <code>Config</code> 结构体来保存配置信息</li>
+<li>使用函数式Option 模式</li>
+</ul>
+<p>接下来逐一探索这三种方式并且分析这些方式的优势和劣势。</p>
+<h3 id="方式-1：-为每一个配置选项声明一个新的构造器"><a href="#方式-1：-为每一个配置选项声明一个新的构造器" class="headerlink" title="方式 1： 为每一个配置选项声明一个新的构造器"></a>方式 1： 为每一个配置选项声明一个新的构造器</h3><p>如果你能很清晰的知道你的配置选项不太会改变，同时你只有少数几个选项时，方式 1 是一个比较好的选择。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> server</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Server &#123;</span><br><span class="line">	host <span class="type">string</span></span><br><span class="line">	port <span class="type">int</span></span><br><span class="line">	timeout time.Duration</span><br><span class="line">	maxConn <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(host <span class="type">string</span>, port <span class="type">int</span>)</span></span> *Server &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;host, port, time.Minute, <span class="number">100</span>&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewWithTimeout</span><span class="params">(host <span class="type">string</span>, port <span class="type">int</span>, timeout time.Duration)</span></span> *Server    &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;host, port, timeout&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewWithTimeoutAndMaxConn</span><span class="params">(host <span class="type">string</span>, timeout time.Duration, maxConn <span class="type">int</span>)</span></span> *Server &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;host, port, timeout, maxConn&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> Start() <span class="type">error</span> &#123;</span><br><span class="line">	<span class="comment">// todo</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端可能的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="string">&quot;path/to/server/pkg/server&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	svr := server.NewWithTimeoutAndMaxConn(<span class="string">&quot;localhost&quot;</span>, <span class="number">1234</span>, <span class="number">30</span>*time.Second, <span class="number">100</span>)</span><br><span class="line">	<span class="keyword">if</span> err := svr.Start(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但是当配置选项数量经常增加或改变时，该方法就不是很灵活了。需要为每一个配置选项创建新的构造器。</p>
+<h2 id="方式-2：-使用一个自定义的-Config-结构体"><a href="#方式-2：-使用一个自定义的-Config-结构体" class="headerlink" title="方式 2： 使用一个自定义的 Config 结构体"></a>方式 2： 使用一个自定义的 Config 结构体</h2><p>这种方式是最常用的方法，即使当你有很多的选项需要配置时仍然好用。你可以创建一个新的导出类型 <code>Config</code> ，它包含 server 中所有的配置选项。这种方式在无需改变 server 构造器 API 的前提下可以轻松扩展。因此当增加新的选项或删除旧的选项时无需改变其定义。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> server</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Server &#123;</span><br><span class="line">	cfg Config</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Config <span class="keyword">struct</span> &#123;</span><br><span class="line">	host <span class="type">string</span></span><br><span class="line">	port <span class="type">int</span></span><br><span class="line">	timeout time.Duration</span><br><span class="line">	maxConn <span class="type">int</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(cfg Config)</span></span> *Server &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Server&#123;cfg&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> Start() <span class="type">error</span> &#123;</span><br><span class="line">	<span class="comment">// todo</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端可以使用 <code>Config</code> 结构体来配置 <code>server</code> ：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="string">&quot;path/to/server/pkg/server&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	svr := server.New(server.Config&#123;<span class="string">&quot;localhost&quot;</span>, <span class="number">1234</span>, <span class="number">30</span>*time.Second, <span class="number">100</span>&#125;)</span><br><span class="line">	<span class="keyword">if</span> err := svr.Start(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种方式是非常灵活的，允许我们为 <code>server</code> 定义一个固定类型（<code>server.Config</code>）并且一组稳定的 API 来配置 <code>server</code>，比如 <code>server.New(cfg server.Config)</code>。唯一的问题是当增删选项时，仍然需要对对外暴露的 <code>Config</code> 结构体做破坏性变更。但是该方式仍然是最好也是使用最多的配置方式。</p>
+<h2 id="方式-3：函数式Option-模式"><a href="#方式-3：函数式Option-模式" class="headerlink" title="方式 3：函数式Option 模式"></a>方式 3：函数式Option 模式</h2><p>除了上述两种方式外，针对选项配置问题的一种更好的替代是函数式option 设计模式。你可能之前已经在 Go 项目中听过或见过 functional options pattern，接下来在这个例子中我们将详细的拆解它的结构和特点。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> server</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Server &#123;</span><br><span class="line">	host <span class="type">string</span></span><br><span class="line">	port <span class="type">int</span></span><br><span class="line">	timeout time.Duration</span><br><span class="line">	maxConn <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(options ...<span class="keyword">func</span>(*Server)</span></span>) *Server &#123;</span><br><span class="line">	svr := &amp;Server&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> _, o := <span class="keyword">range</span> options &#123;</span><br><span class="line">		o(svr)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> svr</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> Start() <span class="type">error</span> &#123;</span><br><span class="line">	<span class="comment">// todo</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithHost</span><span class="params">(host <span class="type">string</span>)</span></span> <span class="function"><span class="keyword">func</span><span class="params">(*Server)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(s *Server)</span></span> &#123;</span><br><span class="line">		s.host = host</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithPort</span><span class="params">(port <span class="type">int</span>)</span></span> <span class="function"><span class="keyword">func</span><span class="params">(*Server)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(s *Server)</span></span> &#123;</span><br><span class="line">		s.port = port</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithTimeout</span><span class="params">(timeout time.Duration)</span></span> <span class="function"><span class="keyword">func</span><span class="params">(*Server)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(s *Server)</span></span> &#123;</span><br><span class="line">		s.timeout = timeout</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithMaxConn</span><span class="params">(maxConn <span class="type">int</span>)</span></span> <span class="function"><span class="keyword">func</span><span class="params">(*Server)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(s *Server)</span></span> &#123;</span><br><span class="line">		s.maxConn = maxConn</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用方式如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="string">&quot;path/to/server/pkg/server&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	svr := server.New(</span><br><span class="line">		server.WithHost(<span class="string">&quot;localhost&quot;</span>),</span><br><span class="line">		server.WithPort(<span class="number">8080</span>),</span><br><span class="line">		server.WithTimeout(time.Minute),</span><br><span class="line">		server.WithMaxConn(<span class="number">120</span>),</span><br><span class="line">	)</span><br><span class="line">	<span class="keyword">if</span> err := svr.Start(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>函数式 option 模式允许我们为 server 的每个可能的配置定义一个固定的类型签名，使用 <code>func(*Server)</code> 类型签名，我们可以创建任何需要传递给 server 的选项，我们的选项也是默认可选的，所以选项的顺序并不主要。这种方法的好处还在于具有强表达能力设计以及自动文档化的特性的类型定义，每个方法定了一个 server 的选项和选项类型。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://carlcao17.github.io/designpattern/golang_functional_option_pattern.html" data-id="clhg8v31b0001aommbtzfgnzo" data-title="" class="article-share-link">Share</a>
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+
+  
+    
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 Carl Cao<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.4.1.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
